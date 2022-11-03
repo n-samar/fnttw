@@ -42,9 +42,45 @@ func MultiplicativeInverse(a, modulo *big.Int) uint64 {
 	return big_result.ModInverse(a, modulo).Uint64()
 }
 
-func (modulus Simple64BitModulus) ModMul(a, b uint64) uint64 {
+func ModMul(a, b, q uint64) uint64 {
 	hi, lo := bits.Mul64(a, b)
-	return bits.Rem64(hi, lo, modulus.q)
+	return bits.Rem64(hi, lo, q)
+}
+
+func ModAdd(a, b, q uint64) uint64 {
+	return (a + b) % q
+}
+
+func ModSub(a, b, q uint64) uint64 {
+	if b > a {
+		return q - (b - a)
+	}
+	return a - b
+}
+
+func ModInv(a, modulo uint64) uint64 {
+	big_a := NewBigIntFromUint64(a)
+	big_modulo := NewBigIntFromUint64(modulo)
+	return big_a.ModInverse(big_a, big_modulo).Uint64()
+}
+
+func ModExp(a, n, q uint64) uint64 {
+	if n == 0 {
+		return 1
+	}
+	if n == 1 {
+		return a % q
+	}
+	sqrt := ModExp(a, n/2, q)
+	result := ModMul(sqrt, sqrt, q)
+	if n%2 == 1 {
+		result = ModMul(result, a, q)
+	}
+	return result
+}
+
+func (modulus Simple64BitModulus) ModMul(a, b uint64) uint64 {
+	return ModMul(a, b, modulus.q)
 }
 
 func (modulus Montgomery64BitModulus) ModMul(a, b uint64) uint64 {
