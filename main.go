@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"os"
+	"runtime/pprof"
 
 	"github.com/n-samar/fnttw/fnttw"
 )
@@ -14,5 +16,8 @@ func main() {
 	// TODO(nsamar): Clean up arguments, they are messy
 	q := fnttw.NttFriendlyPrimes(N, 1, *logN+4)[0]
 	modulus := fnttw.MakeMontgomery64BitModulus(q)
+	profile_file, _ := os.Create("./cpu.pprof")
+	pprof.StartCPUProfile(profile_file)
 	fnttw.Ntt(a, modulus)
+	pprof.StopCPUProfile()
 }
