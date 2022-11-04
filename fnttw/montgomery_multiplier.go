@@ -134,7 +134,11 @@ func ModMul(a, b, q uint64) uint64 {
 }
 
 func ModAdd(a, b, q uint64) uint64 {
-	return (a + b) % q
+	result := a + b
+	if result >= q {
+		return result - q
+	}
+	return result
 }
 
 func ModSub(a, b, q uint64) uint64 {
