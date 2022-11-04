@@ -4,6 +4,14 @@ import (
 	"sync"
 )
 
+func Range(n int) []uint64 {
+	a := make([]uint64, n)
+	for i := range a {
+		a[i] = uint64(i)
+	}
+	return a
+}
+
 func BitReverse(x, n int) int {
 	y := 0
 	for i := 0; i < n; i++ {
