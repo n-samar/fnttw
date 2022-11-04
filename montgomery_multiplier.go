@@ -7,11 +7,97 @@ import (
 
 type Montgomery64BitModulus struct {
 	q         uint64
-	R_inverse uint64
+	q_inverse uint64
 }
 
 type Simple64BitModulus struct {
 	q uint64
+}
+
+type Modulus64Bit interface {
+	ModMul(a, b uint64) uint64
+	Modulus() uint64
+	NthRootOfUnity(n uint64) uint64
+	ModInv(a uint64) uint64
+	FieldElement(a uint64) uint64
+	FromFieldElement(a uint64) uint64
+}
+
+func (modulus Simple64BitModulus) FieldElement(a uint64) uint64 {
+	return a
+}
+
+func (modulus Simple64BitModulus) FromFieldElement(a uint64) uint64 {
+	return a
+}
+
+func (modulus Montgomery64BitModulus) FromFieldElement(a uint64) uint64 {
+	return modulus.ModMul(a, uint64(1))
+}
+
+func (modulus Montgomery64BitModulus) FieldElement(a uint64) uint64 {
+	return ModMul(a, modulus.RMod(), modulus.q)
+}
+
+func (modulus Simple64BitModulus) NthRootOfUnity(n uint64) uint64 {
+	return ComputeNthRootOfUnity(n, modulus.q)
+}
+
+func (modulus Simple64BitModulus) ModInv(a uint64) uint64 {
+	return ModInv(a, modulus.q)
+}
+
+func (modulus Montgomery64BitModulus) ModInv(a uint64) uint64 {
+	a_non_montgomery := modulus.FromFieldElement(a)
+	a_inverse := ModInv(a_non_montgomery, modulus.q)
+	return modulus.FieldElement(a_inverse)
+}
+
+func PrimeFactor(n uint64) []uint64 {
+	factors := make([]uint64, 0)
+	for i := uint64(2); i <= n; i++ {
+		if n%i == 0 {
+			factors = append(factors, i)
+			for n%i == 0 {
+				n /= i
+			}
+		}
+	}
+	return factors
+}
+
+func PrimitiveRoot(modulo uint64) uint64 {
+	s := modulo - 1
+
+	factors := PrimeFactor(s)
+
+	for candidate := uint64(2); candidate < modulo; candidate++ {
+		for _, factor := range factors {
+			if ModExp(candidate, s/factor, modulo) == 1 {
+				goto skip
+			}
+		}
+		return candidate
+	skip:
+	}
+
+	panic("No primitive root found")
+}
+
+func ComputeNthRootOfUnity(n, modulo uint64) uint64 {
+	return ModExp(PrimitiveRoot(modulo), (modulo-1)/n, modulo)
+}
+
+func (modulus Montgomery64BitModulus) NthRootOfUnity(n uint64) uint64 {
+	return modulus.FieldElement(ComputeNthRootOfUnity(n, modulus.q))
+}
+
+func (modulus Simple64BitModulus) Modulus() uint64 {
+	return modulus.q
+}
+
+func (modulus Montgomery64BitModulus) Modulus() uint64 {
+	return modulus.q
 }
 
 func R64Bit() *big.Int {
@@ -86,7 +172,7 @@ func (modulus Simple64BitModulus) ModMul(a, b uint64) uint64 {
 func (modulus Montgomery64BitModulus) ModMul(a, b uint64) uint64 {
 	// From https://github.com/tuneinsight/lattigo/blob/master/ring/modular_reduction.go#L60
 	mhi, mlo := bits.Mul64(a, b)
-	hhi, _ := bits.Mul64(mlo*modulus.R_inverse, modulus.q)
+	hhi, _ := bits.Mul64(mlo*modulus.q_inverse, modulus.q)
 	result := mhi - hhi + modulus.q
 	if result >= modulus.q {
 		result -= modulus.q

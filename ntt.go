@@ -1,5 +1,9 @@
 package fnttw
 
+import (
+	"sync"
+)
+
 func BitReverse(x, n int) int {
 	y := 0
 	for i := 0; i < n; i++ {
@@ -27,31 +31,46 @@ func NttBitShuffle(a []uint64) {
 	copy(a, b)
 }
 
-func NttHelper(a []uint64, w uint64, modulo uint64) {
+func NttWithoutBitShuffle(a []uint64, w uint64, modulo Modulus64Bit) {
 	n := len(a)
 	if n == 1 {
 		return
 	}
-	// Split the input in two halves
-	half := n / 2
-	a0 := a[:half]
-	a1 := a[half:]
-	// Compute the NTT of the two halves
-	NttHelper(a0, ModMul(w, w, modulo), modulo)
-	NttHelper(a1, ModMul(w, w, modulo), modulo)
+	a0 := a[:n/2]
+	a1 := a[n/2:]
+
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		NttWithoutBitShuffle(a0, modulo.ModMul(w, w), modulo)
+	}()
+	go func() {
+		defer wg.Done()
+		NttWithoutBitShuffle(a1, modulo.ModMul(w, w), modulo)
+	}()
+
+	wg.Wait()
+
 	// Combine the two halves
-	wi := uint64(1)
-	for i := 0; i < half; i++ {
-		t := ModMul(wi, a1[i], modulo)
-		a[i+half] = ModSub(a[i], t, modulo)
-		a[i] = ModAdd(a[i], t, modulo)
-		wi = ModMul(wi, w, modulo)
+	wi := modulo.FieldElement(1)
+	for i := 0; i < n/2; i++ {
+		t := modulo.ModMul(wi, a1[i])
+		a[i+n/2] = ModSub(a[i], t, modulo.Modulus())
+		a[i] = ModAdd(a[i], t, modulo.Modulus())
+		wi = modulo.ModMul(wi, w)
 	}
 }
 
-func Ntt(a []uint64, w uint64, modulo uint64) {
+func NttTwiddle(a []uint64, w uint64, modulo Modulus64Bit) {
 	NttBitShuffle(a)
-	NttHelper(a, w, modulo)
+	NttWithoutBitShuffle(a, w, modulo)
+}
+
+func Ntt(a []uint64, modulo Modulus64Bit) {
+	NttTwiddle(a, modulo.NthRootOfUnity(uint64(len(a))), modulo)
 }
 
 func KthNttTerm(a []uint64, w uint64, modulo uint64, k uint64) uint64 {
@@ -65,7 +84,7 @@ func KthNttTerm(a []uint64, w uint64, modulo uint64, k uint64) uint64 {
 	return result
 }
 
-func TrivialNtt(a []uint64, w uint64, modulo uint64) {
+func TrivialNttTwiddle(a []uint64, w uint64, modulo uint64) {
 	result := make([]uint64, len(a))
 	for i := range a {
 		result[i] = KthNttTerm(a, w, modulo, uint64(i))
@@ -73,22 +92,30 @@ func TrivialNtt(a []uint64, w uint64, modulo uint64) {
 	copy(a, result)
 }
 
-func InverseTrivialNtt(a []uint64, w uint64, modulo uint64) {
-	TrivialNtt(a, ModInv(w, modulo), modulo)
+func TrivialNtt(a []uint64, modulo uint64) {
+	w := ComputeNthRootOfUnity(uint64(len(a)), modulo)
+	TrivialNttTwiddle(a, w, modulo)
+}
+
+func InverseTrivialNtt(a []uint64, modulo uint64) {
+	w := ComputeNthRootOfUnity(uint64(len(a)), modulo)
+	TrivialNttTwiddle(a, ModInv(w, modulo), modulo)
 
 	// Divide by len(a)
-	inv_n := ModInv(uint64(len(a)), modulo)
+	n_inverse := ModInv(uint64(len(a)), modulo)
 	for i := range a {
-		a[i] = ModMul(a[i], inv_n, modulo)
+		a[i] = ModMul(a[i], n_inverse, modulo)
 	}
 }
 
-func InverseNtt(a []uint64, w uint64, modulo uint64) {
-	Ntt(a, ModInv(w, modulo), modulo)
+func InverseNtt(a []uint64, modulo Modulus64Bit) {
+	w := modulo.NthRootOfUnity(uint64(len(a)))
+	w_inv := modulo.ModInv(w)
+	NttTwiddle(a, w_inv, modulo)
 
 	// Divide by len(a)
-	inv_n := ModInv(uint64(len(a)), modulo)
+	n_inverse := modulo.ModInv(modulo.FieldElement(uint64(len(a))))
 	for i := range a {
-		a[i] = ModMul(a[i], inv_n, modulo)
+		a[i] = modulo.ModMul(a[i], n_inverse)
 	}
 }
