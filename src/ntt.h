@@ -83,11 +83,11 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
 		return;
 	}
 
-    auto w_squared = ModMul<modulus>(w, w);
-    NttWithoutBitShuffle<modulus>(vec, n/2, w_squared);
-    NttWithoutBitShuffle<modulus>(vec + n/2, n/2, w_squared);
+    #pragma omp parallel for if (n >= 32768)
+    for (int i = 0; i < 2; ++i) {
+        NttWithoutBitShuffle<modulus>(vec + i*n/2, n/2, ModMul<modulus>(w, w));
+    }
 
-	// Combine the two halves
 	uint32_t wi = 1;
 	for (int i = 0; i < n/2; i++) {
 		auto t = ModMul<modulus>(wi, vec[n/2 + i]);

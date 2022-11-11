@@ -60,6 +60,9 @@ env.Append(
     ]
 )
 
+env.Append(LINKFLAGS = ["-fopenmp"])
+env.Append(CCFLAGS = ["-fopenmp"])
+
 def program(name, source, extra_sources = []):
     target = str(build_dir / name)
 

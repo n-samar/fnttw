@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <omp.h>
 
 #include "ntt.h"
 #include "utils.h"
