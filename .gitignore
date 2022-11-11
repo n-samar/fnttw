@@ -1,0 +1,5 @@
+.cache
+*.dblite
+*.o
+build
+*.json
