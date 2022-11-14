@@ -78,7 +78,7 @@ uint32_t NthRootOfUnity(uint32_t N) {
     return ModExp<modulus>(PrimitiveRoot<modulus>(), (modulus-1)/N);
 }
 
-constexpr int elements_per_thread = 1 << 19;
+constexpr int elements_per_thread = 1 << 13;
 
 template <uint32_t modulus>
 void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {

@@ -17,5 +17,5 @@ static void BM_Ntt(benchmark::State& state) {
     }
 }
 
-BENCHMARK(BM_Ntt)->Range(1 << 20, 1 << 25)->ThreadRange(1, 32)->Unit(benchmark::kMicrosecond);
+BENCHMARK(BM_Ntt)->Range(1 << 20, 1 << 25)->ThreadRange(1, 32)->Unit(benchmark::kMillisecond);
 BENCHMARK_MAIN();
