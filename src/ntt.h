@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <stdint.h>
+#include <omp.h>
 
 #include <glog/logging.h>
 
@@ -77,24 +78,33 @@ uint32_t NthRootOfUnity(uint32_t N) {
     return ModExp<modulus>(PrimitiveRoot<modulus>(), (modulus-1)/N);
 }
 
+constexpr int elements_per_thread = 1 << 19;
+
 template <uint32_t modulus>
 void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
 	if (n == 1) {
 		return;
 	}
 
-    #pragma omp parallel for if (n >= 32768)
+    auto w_squared = ModMul<modulus>(w, w);
+    #pragma omp parallel for if (n > elements_per_thread)
     for (int i = 0; i < 2; ++i) {
-        NttWithoutBitShuffle<modulus>(vec + i*n/2, n/2, ModMul<modulus>(w, w));
+        NttWithoutBitShuffle<modulus>(vec + i * n/2, n/2, w_squared);
     }
 
-	uint32_t wi = 1;
-	for (int i = 0; i < n/2; i++) {
-		auto t = ModMul<modulus>(wi, vec[n/2 + i]);
-		vec[i+n/2] = ModSub<modulus>(vec[i], t);
-		vec[i] = ModAdd<modulus>(vec[i], t);
-		wi = ModMul<modulus>(wi, w);
-	}
+
+    int num_threads = std::max(1, int(n) / elements_per_thread);
+    #pragma omp parallel for if (n >= elements_per_thread)
+    for (int thread_id = 0; thread_id < num_threads; ++thread_id) {
+        uint32_t wi = ModExp<modulus>(w, thread_id * elements_per_thread);
+        for (int idx = 0; idx < n/2/num_threads; idx++) {
+            int i = thread_id * elements_per_thread / 2 + idx;
+            auto t = ModMul<modulus>(wi, vec[n/2 + i]);
+            vec[i+n/2] = ModSub<modulus>(vec[i], t);
+            vec[i] = ModAdd<modulus>(vec[i], t);
+            wi = ModMul<modulus>(wi, w);
+        }
+    }
 }
 
 inline uint32_t BitReverse(uint32_t bitwidth, uint32_t x) {

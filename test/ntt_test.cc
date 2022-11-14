@@ -21,7 +21,7 @@ void CheckEqual(const std::vector<uint32_t>& lhs, const std::vector<uint32_t>& r
   }
 }
 
-constexpr uint32_t N = 1 << 10;
+constexpr uint32_t N = 1 << 12;
 constexpr uint32_t modulus = 270532609;
 
 template <uint32_t modulus>
