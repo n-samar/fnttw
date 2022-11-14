@@ -98,6 +98,7 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
 
     #pragma omp parallel for schedule(static) if (n > elements_per_thread)
     for (int i = 0; i < n/2; ++i) {
+        // Static inline all the things
         uint32_t wi = ModExp<modulus>(w, i);
         auto t = ModMul<modulus>(wi, vec[n/2 + i]);
         vec[i+n/2] = ModSub<modulus>(vec[i], t);
