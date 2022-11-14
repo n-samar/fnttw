@@ -9,7 +9,7 @@ constexpr uint32_t modulus = 270532609;
 std::vector<uint32_t> vec;
 
 static void BM_Ntt(benchmark::State& state) {
-    if (state.thread_index == 0) {
+    if (state.thread_index() == 0) {
         vec = RandomVector(state.range(0));
     }
     for (auto _ : state) {

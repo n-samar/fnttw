@@ -56,6 +56,7 @@ env.Append(
         "gtest_main",
         "gtest",
         "gflags",
+        "pfm",
         File("/data/sanchez/tools/nsamar/18.04/janncy/x86_64-linux-gnu/libbenchmark.a"),
     ]
 )
