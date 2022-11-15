@@ -36,7 +36,8 @@ static inline uint32_t ModSub(uint32_t a, uint32_t b) {
 
 template <uint32_t modulus>
 static inline uint32_t ModMul(uint32_t a, uint32_t b) {
-    return uint32_t((uint64_t(a)*uint64_t(b)) % modulus);
+    uint64_t prod = a * uint64_t(b);
+    return prod % modulus;
 }
 
 template <uint32_t modulus>
@@ -95,13 +96,21 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
         NttWithoutBitShuffle<modulus>(vec + n/2, n/2, w_squared);
     }
 
-
-    #pragma omp parallel for schedule(static) if (n > elements_per_thread)
-    for (int i = 0; i < n/2; ++i) {
-        uint32_t wi = ModExp<modulus>(w, i);
-        auto t = ModMul<modulus>(wi, vec[n/2 + i]);
-        vec[i+n/2] = ModSub<modulus>(vec[i], t);
-        vec[i] = ModAdd<modulus>(vec[i], t);
+    int num_threads = int(n/2);
+    if (n > elements_per_thread) {
+        num_threads = 1;
+    }
+    int elems_per_thread = n/2/num_threads;
+    #pragma omp parallel for schedule(static, 1) if (n > elements_per_thread)
+    for (int j = 0; j < num_threads; ++j) {
+        int start_idx = j*elems_per_thread;
+        auto wi = ModExp<modulus>(w, start_idx);
+        for (int i = start_idx; i < start_idx + elems_per_thread; ++i) {
+            auto t = ModMul<modulus>(wi, vec[n/2 + i]);
+            vec[i+n/2] = ModSub<modulus>(vec[i], t);
+            vec[i] = ModAdd<modulus>(vec[i], t);
+            wi = ModMul<modulus>(wi, w);
+        }
     }
 }
 
