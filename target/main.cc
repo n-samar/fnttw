@@ -1,7 +1,7 @@
 #include "ntt.h"
 #include "utils.h"
 
-constexpr int N = 1 << 23;
+constexpr int N = 1 << 20;
 constexpr uint32_t modulus = 270532609;
 
 int main() {
