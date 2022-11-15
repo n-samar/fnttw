@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <omp.h>
+#include <cassert>
 
 #include <glog/logging.h>
 
@@ -83,12 +84,27 @@ constexpr int elements_per_thread = 1 << 18;
 
 template <uint32_t modulus>
 void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
-	if (n == 1) {
-		return;
+	if (n <= elements_per_thread) {
+        for (int n_sub = 2; n_sub <= n; n_sub *= 2) {
+            auto w_curr = ModExp<modulus>(w, n/n_sub);
+            auto w_offset = ModExp<modulus>(w_curr, n_sub);
+            auto w_base = uint32_t(1);
+            for (int curr_offset = 0; curr_offset < n; curr_offset+=n_sub) {
+                auto wi = w_base;
+                for (int i = 0; i < n_sub/2; ++i) {
+                    auto t = ModMul<modulus>(wi, vec[curr_offset + n_sub/2 + i]);
+                    vec[curr_offset + i + n_sub/2] = ModSub<modulus>(vec[curr_offset + i], t);
+                    vec[curr_offset + i] = ModAdd<modulus>(vec[curr_offset + i], t);
+                    wi = ModMul<modulus>(wi, w_curr);
+                }
+                w_base = ModMul<modulus>(w_base, w_offset);
+            }
+        }
+        return;
 	}
 
     auto w_squared = ModMul<modulus>(w, w);
-    #pragma omp parallel sections if (n > elements_per_thread)
+    #pragma omp parallel sections
     {
         #pragma omp section
         NttWithoutBitShuffle<modulus>(vec, n/2, w_squared);
@@ -96,16 +112,13 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
         NttWithoutBitShuffle<modulus>(vec + n/2, n/2, w_squared);
     }
 
-    int num_threads = int(n/2);
-    if (n > elements_per_thread) {
-        num_threads = 1;
-    }
-    int elems_per_thread = n/2/num_threads;
-    #pragma omp parallel for schedule(static, 1) if (n > elements_per_thread)
+    int num_threads = int(n/2/elements_per_thread);
+
+    #pragma omp parallel for schedule(static, 1)
     for (int j = 0; j < num_threads; ++j) {
-        int start_idx = j*elems_per_thread;
+        int start_idx = j*elements_per_thread;
         auto wi = ModExp<modulus>(w, start_idx);
-        for (int i = start_idx; i < start_idx + elems_per_thread; ++i) {
+        for (int i = start_idx; i < start_idx + elements_per_thread; ++i) {
             auto t = ModMul<modulus>(wi, vec[n/2 + i]);
             vec[i+n/2] = ModSub<modulus>(vec[i], t);
             vec[i] = ModAdd<modulus>(vec[i], t);
