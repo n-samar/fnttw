@@ -78,7 +78,7 @@ uint32_t NthRootOfUnity(uint32_t N) {
     return ModExp<modulus>(PrimitiveRoot<modulus>(), (modulus-1)/N);
 }
 
-constexpr int elements_per_thread = 1 << 13;
+constexpr int elements_per_thread = 1 << 18;
 
 template <uint32_t modulus>
 void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
@@ -87,7 +87,7 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
 	}
 
     auto w_squared = ModMul<modulus>(w, w);
-    #pragma omp parallel sections
+    #pragma omp parallel sections if (n > elements_per_thread)
     {
         #pragma omp section
         NttWithoutBitShuffle<modulus>(vec, n/2, w_squared);
