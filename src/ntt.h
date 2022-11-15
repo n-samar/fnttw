@@ -22,12 +22,12 @@ inline std::vector<uint32_t> PrimeFactors(uint32_t n) {
 }
 
 template <uint32_t modulus>
-uint32_t ModAdd(uint32_t a, uint32_t b) {
+static inline uint32_t ModAdd(uint32_t a, uint32_t b) {
     return (a+b) % modulus;
 }
 
 template <uint32_t modulus>
-uint32_t ModSub(uint32_t a, uint32_t b) {
+static inline uint32_t ModSub(uint32_t a, uint32_t b) {
     if (b > a) {
         return modulus - (b-a);
     }
@@ -35,7 +35,7 @@ uint32_t ModSub(uint32_t a, uint32_t b) {
 }
 
 template <uint32_t modulus>
-uint32_t ModMul(uint32_t a, uint32_t b) {
+static inline uint32_t ModMul(uint32_t a, uint32_t b) {
     return uint32_t((uint64_t(a)*uint64_t(b)) % modulus);
 }
 
@@ -98,7 +98,6 @@ void NttWithoutBitShuffle(uint32_t* vec, uint32_t n, uint32_t w) {
 
     #pragma omp parallel for schedule(static) if (n > elements_per_thread)
     for (int i = 0; i < n/2; ++i) {
-        // Static inline all the things
         uint32_t wi = ModExp<modulus>(w, i);
         auto t = ModMul<modulus>(wi, vec[n/2 + i]);
         vec[i+n/2] = ModSub<modulus>(vec[i], t);

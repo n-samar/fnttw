@@ -11,6 +11,7 @@ build_dir = Path("build")
 src_dir = Path("src")
 test_dir = Path("test")
 benchmark_dir = Path("benchmark")
+target_dir = Path("target")
 
 debug = int(ARGUMENTS.get("debug", 0))
 clang = str(Path("/usr/bin/") / clang_version)
@@ -75,3 +76,4 @@ def program(name, source, extra_sources = []):
 
 program("tests", Glob(test_dir / "*.cc"))
 program("benchmark", Glob(benchmark_dir / "*.cc"))
+program("main", Glob(target_dir / "main.cc"))
