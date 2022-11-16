@@ -76,5 +76,6 @@ def program(name, source, extra_sources = []):
     return env.Program(target, sources)
 
 program("tests", Glob(test_dir / "*.cc"))
-program("benchmark", Glob(benchmark_dir / "*.cc"))
+program("ntt_benchmark", benchmark_dir / "ntt_benchmark.cc")
+program("mulcp_benchmark", benchmark_dir / "mulcp_benchmark.cc")
 program("main", Glob(target_dir / "main.cc"))
