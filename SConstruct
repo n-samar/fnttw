@@ -38,6 +38,7 @@ env.Append(
         "-ggdb",
         f"-std={cpp_version}",
         "-Wall",
+        "-mavx2",
     ]
 )
 
